@@ -56,6 +56,9 @@ private:
 	TArray<UActorComponent*> mComponents;
 	bool mbPressed = false;
 	bool mbStarted = false;
+
+	bool AttachToComponent(USceneComponent* InParentComponent);
+	bool AttachToActor(AActor* InParentActor);
 };
 
 inline const FVector Up = FVector(0, 0, 1);

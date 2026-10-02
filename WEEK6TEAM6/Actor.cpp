@@ -111,6 +111,7 @@ void AActor::AddComponent(UActorComponent* actorComponent)
 	}
 }
 
+// TODO: RootComponent가 처음 추가 될 때만 사용 추후 RootComponent를 변경할 수 있도록 기능 추가
 void AActor::AddRootSceneComponent(USceneComponent* sceneComponent)
 {
 	assert(sceneComponent);
@@ -243,4 +244,22 @@ int32 AActor::getComponentIndex(int32 componentUUID) const
 	}
 
 	return -1;
+}
+
+bool AActor::AttachToComponent(USceneComponent* InParentComponent)
+{
+	return (mRootComponent->AttachToComponent(InParentComponent));
+}
+
+bool AActor::AttachToActor(AActor* InParentActor)
+{
+	if (!InParentActor)
+	{
+		return false;
+	}
+	if (InParentActor == this)
+	{
+		return false;
+	}
+	return (mRootComponent->AttachToComponent(InParentActor->GetRootComponent()));
 }

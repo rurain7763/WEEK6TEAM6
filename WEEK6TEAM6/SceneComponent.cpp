@@ -95,3 +95,49 @@ const FTransform& USceneComponent::GetTransform() const
 {
 	return mRelativeTransform;
 }
+
+// 자식 컴포넌트에서 부모 컴포넌트 포인터 추가하고 부모 컴포넌트 배열에 현재 컴포넌트 추가하기, 이미 부모 컴포넌트가 있으면 정리하기
+bool USceneComponent::AttachToComponent(USceneComponent* InParentComp)
+{
+	if (!InParentComp)
+	{
+		return false;
+	}
+	if (InParentComp == this)
+	{
+		return false;
+	}
+	if (InParentComp->IsAttachedTo(this))
+	{
+		return false;
+	}
+
+	// 기존 부모에서 자신 제거
+	if (mAttachParent)
+	{
+		// TODO:: TArray에 RemoveSingle 추가하기
+		TArray<USceneComponent*> OldParentAttachChildren = mAttachParent->GetAttachChildren();
+		int32 idx = OldParentAttachChildren.Find(this);
+		if (idx != -1)
+		{
+			OldParentAttachChildren.RemoveAt(idx, 1);
+			mAttachParent = nullptr;
+		}
+	}
+	TArray<USceneComponent*> ParentAttachChildren = InParentComp->GetAttachChildren();
+	mAttachParent = InParentComp;
+	ParentAttachChildren.Add(this);
+}
+
+bool USceneComponent::IsAttachedTo(const USceneComponent* TestComp)
+{
+	if (mAttachParent == TestComp)
+	{
+		return true;
+	}
+	if (!mAttachParent)
+	{
+		return false;
+	}
+	return mAttachParent->IsAttachedTo(TestComp);
+}
