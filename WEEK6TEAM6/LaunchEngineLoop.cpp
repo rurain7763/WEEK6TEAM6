@@ -329,18 +329,22 @@ void FEngineLoop::Tick(bool bPumpMessages)
 				if (RenderCollector.bNeedPickTargets)
 				{
 					AActor* HitActor = nullptr;
+					// TODO:: PerformMousePicking 수정 후 UActorComponent로 교체
+					UPrimitiveComponent* HitPrimitive = nullptr;
 					{
 						PROFILE_SCOPE("MousePicking");
-						HitActor = CurrentViewport->Client->PerformMousePicking(CurrentViewport->Window->Rect, CurrentRatio, RenderCollector);
+						HitPrimitive = CurrentViewport->Client->PerformMousePicking(CurrentViewport->Window->Rect, CurrentRatio, RenderCollector);
 					}
-
-					if (HitActor)
+					if (HitPrimitive)
 					{
+						HitActor = HitPrimitive->GetOwner();
 						mSceneManager->SetSelectedActor(HitActor);
+						mSceneManager->SetSelectedPrimitive(HitPrimitive);
 					}
 					else
 					{
 						mSceneManager->ResetSelectedActor();
+						mSceneManager->ResetSelectedPrimitive();
 					}
 				}
 			}

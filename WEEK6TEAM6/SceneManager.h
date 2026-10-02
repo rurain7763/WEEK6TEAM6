@@ -48,7 +48,14 @@ public:
 	void SetSelectedActor(AActor* actor);
 	void ResetSelectedActor() { mSelectedActor = nullptr; }
 
+	UPrimitiveComponent* GetSelectedPrimitive() const { return mSelectedPrimitive; }
+	bool IsPrimitiveSelected() const { return mSelectedPrimitive != nullptr; }
+	void SetSelectedPrimitive (UPrimitiveComponent* inPrimitiveComp);
+	void ResetSelectedPrimitive() { mSelectedPrimitive = nullptr; }
+
 private:
 	UWorld* mCurrentWorld = nullptr;
 	AActor* mSelectedActor = nullptr;
+	// TODO:: 추후 SelectedActorComp 또는 SceneComp로 수정
+	UPrimitiveComponent* mSelectedPrimitive = nullptr;
 };

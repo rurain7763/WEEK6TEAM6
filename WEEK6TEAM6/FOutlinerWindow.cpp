@@ -69,6 +69,7 @@ void FOutlinerWindow::Render(const FGuiReference& GuiReference)
 					if (ImGui::Button("Select"))
 					{
 						GuiReference.SceneManager->SetSelectedActor(CurrentActor);
+						GuiReference.SceneManager->SetSelectedPrimitive(CurrentActor->GetRootComponent()->Cast<UPrimitiveComponent>());
 					}
 					else
 					{
@@ -99,6 +100,7 @@ void FOutlinerWindow::Render(const FGuiReference& GuiReference)
 			if (GuiReference.SceneManager->GetSelectedActor() == deleteActor)
 			{
 				GuiReference.SceneManager->ResetSelectedActor();
+				GuiReference.SceneManager->ResetSelectedPrimitive();
 			}
 
 			assert(CurrentWorld != nullptr);

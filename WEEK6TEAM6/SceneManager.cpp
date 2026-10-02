@@ -195,6 +195,26 @@ void  FSceneManager::SetSelectedActor(AActor* actor)
 	mSelectedActor = actor;
 }
 
+
+// TODO:: SelectedPrimitive -> SelectedActorComp 수정 필요
+void FSceneManager::SetSelectedPrimitive(UPrimitiveComponent* InPrimitiveComp)
+{
+	if (InPrimitiveComp == nullptr)
+	{
+		UE_LOG_WARN("SetSelectedPrimitive: Attempted to set selected Primitive to nullptr.");
+		return;
+	}
+
+	if (InPrimitiveComp == mSelectedPrimitive)
+	{
+		UE_LOG_WARN("SetSelectedPrimitive: Primitive with UUID %d is already selected.", mSelectedPrimitive->UUID);
+		return; // No change
+	}
+
+	//UE_LOG_WARN("SetSelectedPrimitive: Primitive with UUID %d is now selected.", mSelectedPrimitive->UUID);
+	mSelectedPrimitive = InPrimitiveComp;
+}
+
 //
 //FSceneData FSceneManager::ReadSceneData(
 //	std::string_view sceneName,

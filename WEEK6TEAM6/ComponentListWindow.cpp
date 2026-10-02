@@ -7,6 +7,7 @@
 #include "FEditorUIManager.h"
 #include "FInstrumentor.h"
 #include "SceneComponent.h"
+#include "PrimitiveComponent.h"
 #include <algorithm>
 
 void FComponentListWindow::Render(const FGuiReference& GuiReference)
@@ -16,6 +17,7 @@ void FComponentListWindow::Render(const FGuiReference& GuiReference)
 	ImGuiIO& io = ImGui::GetIO();
 	UWorld* CurrentWorld = GuiReference.SceneManager->GetCurrentWorld();
 	AActor* SelectedActor = GuiReference.SceneManager->GetSelectedActor();
+	UPrimitiveComponent* SelectedPrimitive = GuiReference.SceneManager->GetSelectedPrimitive();
 
 	ImGuiWindowFlags Flags = ImGuiWindowFlags_NoCollapse;
 
@@ -29,7 +31,7 @@ void FComponentListWindow::Render(const FGuiReference& GuiReference)
 			USceneComponent* CurrentRootComponent = SelectedActor->GetRootComponent();
 			if (CurrentRootComponent)
 			{
-				RenderTreeSceneComponent(CurrentRootComponent);
+				RenderTreeSceneComponent(CurrentRootComponent, SelectedPrimitive);
 			}
 		}
 		ImGui::EndChild();
@@ -37,11 +39,12 @@ void FComponentListWindow::Render(const FGuiReference& GuiReference)
 	ImGui::End();
 }
 
-void FComponentListWindow::RenderTreeSceneComponent(USceneComponent* InSceneComp)
+void FComponentListWindow::RenderTreeSceneComponent(USceneComponent* InSceneComp, UPrimitiveComponent* SelectedPrimitive)
 {
 	ImGuiTreeNodeFlags NodeFlags = ImGuiTreeNodeFlags_OpenOnArrow;
 	const bool bHasNoChildren = (InSceneComp->GetAttachChildren().Num() == 0);
-	const bool bIsSelected = false;
+	// TODO:: 액터선택이 아니라 신컴포넌트 선택 기능 추가해줘야 함
+	const bool bIsSelected = (SelectedPrimitive == InSceneComp->Cast<UPrimitiveComponent>());
 	if (bHasNoChildren)
 	{
 		NodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
@@ -63,7 +66,7 @@ void FComponentListWindow::RenderTreeSceneComponent(USceneComponent* InSceneComp
 		{
 			if (ChildComp)
 			{
-				RenderTreeSceneComponent(ChildComp);
+				RenderTreeSceneComponent(ChildComp, SelectedPrimitive);
 			}
 		}
 		ImGui::TreePop();

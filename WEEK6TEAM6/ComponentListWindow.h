@@ -5,10 +5,12 @@
 #include "ImGui/imgui.h"
 #include "Actor.h"
 #include "ActorComponent.h"
+#include "PrimitiveComponent.h"
 
 struct FGuiReference;
 class FSceneManager;
 class UObject;
+class UPtimitiveComponent;
 
 class FComponentListWindow
 {
@@ -17,6 +19,6 @@ public:
 
 private:
 	//AActor* CurrentActor = nullptr;
-	void RenderTreeSceneComponent(USceneComponent* InSceneComponent);
+	void RenderTreeSceneComponent(USceneComponent* InSceneComp, UPrimitiveComponent* SelectedPrimitive);
 	UActorComponent* SelectedComponent;
 };

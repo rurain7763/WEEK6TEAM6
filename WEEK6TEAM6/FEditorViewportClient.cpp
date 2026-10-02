@@ -74,7 +74,7 @@ void FEditorViewportClient::SetViewportType(EViewportType InViewportType)
 	}
 }
 
-AActor* FEditorViewportClient::PerformMousePicking(const FRect& ViewportRect, float perspectiveRatio, const FRenderCollector& RenderCollector)
+UPrimitiveComponent* FEditorViewportClient::PerformMousePicking(const FRect& ViewportRect, float perspectiveRatio, const FRenderCollector& RenderCollector)
 {
 	// 씬은 ImGui "Viewport" 창의 이미지 위에 그려진다.
 	// 그래서 역투영에 넣을 좌표계 기준은 윈도우 전체가 아니라 그 이미지다.
@@ -109,6 +109,7 @@ AActor* FEditorViewportClient::PerformMousePicking(const FRect& ViewportRect, fl
 	const FRay Ray = PickingRay.ToRay();
 
 	AActor* NearestActor = nullptr;
+	UPrimitiveComponent* NearestPrimitiveComponent = nullptr;
 
 	struct FBVHNodeStackEntry
 	{
@@ -157,6 +158,8 @@ AActor* FEditorViewportClient::PerformMousePicking(const FRect& ViewportRect, fl
 				if (HitT < NearlistT)
 				{
 					NearlistT = HitT;
+					// 현재 PrimitiveComponent만 등록 가능
+					NearestPrimitiveComponent = Object;
 					NearestActor = Object->GetOwner();  // 가장 가까운 액터를 반환
 				}
 			}
@@ -192,7 +195,7 @@ AActor* FEditorViewportClient::PerformMousePicking(const FRect& ViewportRect, fl
 		}
 	}
 
-	return NearestActor;
+	return NearestPrimitiveComponent;
 }
 
 void FEditorViewportClient::Update(float deltaTime, float perspectiveRatio, FRenderCollector& RenderCollector)
