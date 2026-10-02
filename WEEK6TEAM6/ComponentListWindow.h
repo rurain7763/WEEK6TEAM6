@@ -19,6 +19,6 @@ public:
 
 private:
 	//AActor* CurrentActor = nullptr;
-	void RenderTreeSceneComponent(USceneComponent* InSceneComp, UPrimitiveComponent* SelectedPrimitive);
-	UActorComponent* SelectedComponent;
+	void RenderTreeSceneComponent(USceneComponent* InSceneComp, const FGuiReference& GuiReference);
+	UActorComponent* mSelectedActorComp;
 };

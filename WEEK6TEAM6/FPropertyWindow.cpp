@@ -2,6 +2,8 @@
 #include "Vector.h"
 #include "ImGui/imgui.h"
 #include "Actor.h"
+#include "ActorComponent.h"
+#include "SceneComponent.h"
 #include "Transform.h"
 #include "UTextComponent.h"
 #include "UAtlasAnimationComponent.h"
@@ -20,32 +22,18 @@ void FPropertyWindow::Render(const FGuiReference& GuiReference)
 	ImGui::Begin("Jungle Property Window", nullptr, flags);
 
 	AActor* TargetActor = GuiReference.SceneManager->GetSelectedActor();
+	UActorComponent* TargetActorComp = GuiReference.SceneManager->GetSelectedActorComp();
 
-	if (TargetActor)
+	if (TargetActorComp)
 	{
 		mAssetManager = GuiReference.AssetManager;
-
-		RenderTransformProperties(TargetActor);
-
-		for (UActorComponent* component : TargetActor->GetComponents())
+		USceneComponent* TargetSceneComp = TargetActorComp->Cast<USceneComponent>();
+		if (TargetSceneComp)
 		{
-			ImGui::SeparatorText(component->GetClass()->Name.c_str());
-
-			if (component->IsA<UText3DComponent>())
+			RenderTransformProperties(TargetSceneComp);
+			if (TargetSceneComp->IsA<UStaticMeshComponent>())
 			{
-				RenderText3DComponent(component->Cast<UText3DComponent>());
-			}
-			else if (component->IsA<USpotLightComponent>())
-			{
-				RenderSpotLightComponent(component->Cast<USpotLightComponent>());
-			}
-			else if (component->IsA< UAtlasAnimationComponent>())
-			{
-				RenderAtlasAnimationComponent(component->Cast<UAtlasAnimationComponent>());
-			}
-			else if (component->IsA<UStaticMeshComponent>())
-			{
-				RenderStaticMeshComponent(component->Cast<UStaticMeshComponent>());
+				RenderStaticMeshComponent(TargetSceneComp->Cast<UStaticMeshComponent>());
 			}
 		}
 	}
@@ -53,9 +41,40 @@ void FPropertyWindow::Render(const FGuiReference& GuiReference)
 	ImGui::End();
 }
 
-void FPropertyWindow::RenderTransformProperties(AActor* TargetActor)
+//void FPropertyWindow::RenderTransformProperties(AActor* TargetActor)
+//{
+//	FTransform OriginalTransform = TargetActor->GetTransform();
+//	FVector translationInput = OriginalTransform.GetLocation();
+//	FVector rotationInput = {
+//		OriginalTransform.GetRotation().Roll,
+//		OriginalTransform.GetRotation().Pitch,
+//		OriginalTransform.GetRotation().Yaw
+//	};
+//	FVector scaleInput = OriginalTransform.GetScale();
+//
+//	if (ImGui::DragFloat3("Translation", &translationInput.x, 0.1f))
+//	{
+//		TargetActor->SetLocation(translationInput);
+//	}
+//
+//	if (ImGui::DragFloat3("Rotation", &rotationInput.x, 0.1f))
+//	{
+//		TargetActor->SetRotation({
+//			rotationInput.y, // Pitch
+//			rotationInput.z, // Yaw
+//			rotationInput.x  // Roll
+//			});
+//	}
+//
+//	if (ImGui::DragFloat3("Scale", &scaleInput.x, 0.1f, MIN_SCALE, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp))
+//	{
+//		TargetActor->SetScale(scaleInput);
+//	}
+//}
+
+void FPropertyWindow::RenderTransformProperties(USceneComponent* TargetSceneComp)
 {
-	FTransform OriginalTransform = TargetActor->GetTransform();
+	FTransform OriginalTransform = TargetSceneComp->GetTransform();
 	FVector translationInput = OriginalTransform.GetLocation();
 	FVector rotationInput = {
 		OriginalTransform.GetRotation().Roll,
@@ -66,12 +85,12 @@ void FPropertyWindow::RenderTransformProperties(AActor* TargetActor)
 
 	if (ImGui::DragFloat3("Translation", &translationInput.x, 0.1f))
 	{
-		TargetActor->SetLocation(translationInput);
+		TargetSceneComp->SetRelativeLocation(translationInput);
 	}
 
 	if (ImGui::DragFloat3("Rotation", &rotationInput.x, 0.1f))
 	{
-		TargetActor->SetRotation({
+		TargetSceneComp->SetRelativeRotation({
 			rotationInput.y, // Pitch
 			rotationInput.z, // Yaw
 			rotationInput.x  // Roll
@@ -80,9 +99,11 @@ void FPropertyWindow::RenderTransformProperties(AActor* TargetActor)
 
 	if (ImGui::DragFloat3("Scale", &scaleInput.x, 0.1f, MIN_SCALE, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp))
 	{
-		TargetActor->SetScale(scaleInput);
+		TargetSceneComp->SetRelativeScale3D(scaleInput);
 	}
 }
+
+
 
 void FPropertyWindow::RenderText3DComponent(UText3DComponent* text3DComponent)
 {

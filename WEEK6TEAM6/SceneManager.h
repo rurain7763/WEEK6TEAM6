@@ -23,6 +23,7 @@ struct FViewport;
 struct FEditorLayout;
 struct FEditorViewport;
 class UStaticMesh;
+class UActorComponent;
 
 class FSceneManager
 {
@@ -48,14 +49,20 @@ public:
 	void SetSelectedActor(AActor* actor);
 	void ResetSelectedActor() { mSelectedActor = nullptr; }
 
-	UPrimitiveComponent* GetSelectedPrimitive() const { return mSelectedPrimitive; }
-	bool IsPrimitiveSelected() const { return mSelectedPrimitive != nullptr; }
-	void SetSelectedPrimitive (UPrimitiveComponent* inPrimitiveComp);
-	void ResetSelectedPrimitive() { mSelectedPrimitive = nullptr; }
+	//UPrimitiveComponent* GetSelectedPrimitive() const { return mSelectedPrimitive; }
+	//bool IsPrimitiveSelected() const { return mSelectedPrimitive != nullptr; }
+	//void SetSelectedPrimitive (UPrimitiveComponent* inPrimitiveComp);
+	//void ResetSelectedPrimitive() { mSelectedPrimitive = nullptr; }
+
+	UActorComponent* GetSelectedActorComp() const { return mSelectedActorComp; }
+	bool IsActorCompSelected() const { return mSelectedActorComp != nullptr; }
+	void SetSelectedActorComp(UActorComponent* inActorComp);
+	void ResetSelectedActorComp() { mSelectedActorComp = nullptr; }
 
 private:
 	UWorld* mCurrentWorld = nullptr;
 	AActor* mSelectedActor = nullptr;
-	// TODO:: 추후 SelectedActorComp 또는 SceneComp로 수정
+	// TODO:: 추후 SelectedActorComp 또는 ActorComp로 수정
 	UPrimitiveComponent* mSelectedPrimitive = nullptr;
+	UActorComponent* mSelectedActorComp = nullptr;
 };

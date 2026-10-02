@@ -6,6 +6,7 @@
 #include "EngineMathLibrary.h"
 #include "SceneManager.h"
 #include "FInstrumentor.h"
+#include "SceneComponent.h"
 #include <cmath>
 
 FGizmo::FGizmo(URenderer& InRenderer) 
@@ -51,18 +52,18 @@ bool FGizmo::IsMouseOverHandle() const
 	return bIsHoveredAxis; 
 }
 
-void FGizmo::Tick(AActor* TargetActor, const FRect& ViewportRect, bool bViewportHovered, const FMatrix& InvViewProjection)
+void FGizmo::Tick(USceneComponent* TargetSceneComp, const FRect& ViewportRect, bool bViewportHovered, const FMatrix& InvViewProjection)
 {
-    if (!TargetActor)
+    if (!TargetSceneComp)
     {
         Reset();
         return;
     }
 
-    if (TargetUUID != TargetActor->UUID)
+    if (TargetUUID != TargetSceneComp->UUID)
     {
         Reset();
-        TargetUUID = TargetActor->UUID;
+        TargetUUID = TargetSceneComp->UUID;
     }
 
     const FInputState& Input = WindowApplication.Input;
@@ -101,7 +102,7 @@ void FGizmo::Tick(AActor* TargetActor, const FRect& ViewportRect, bool bViewport
                 HandleScreenStart = Segment.Start;
                 HandleScreenDirection = Segment.End - Segment.Start;
                 HandleScreenDirection.Normalize();
-                DragStartLocation = TargetActor->GetTransform().GetLocation();
+                DragStartLocation = TargetSceneComp->GetTransform().GetLocation();
                 DragStartMousePosition = MousePosInScreen;
                 bDragStarted = true;
                 bIsSelected = true;
@@ -116,7 +117,7 @@ void FGizmo::Tick(AActor* TargetActor, const FRect& ViewportRect, bool bViewport
         return;
     }
 
-    const FTransform& Transform = TargetActor->GetTransform();
+    const FTransform& Transform = TargetSceneComp->GetTransform();
     if (CurrentOperation == EGIZMO_TYPE::TRANSLATE)
     {
         float ProjectionLength = FVector2::Dot(MousePosInScreen - HandleScreenStart, HandleScreenDirection);
@@ -153,7 +154,7 @@ void FGizmo::Tick(AActor* TargetActor, const FRect& ViewportRect, bool bViewport
         else
         {
             FVector NewLocation = DragStartLocation + AxisDirection * (T - DragStartAxisParameter);
-            TargetActor->SetLocation(NewLocation);
+            TargetSceneComp->SetRelativeLocation(NewLocation);
         }
     }
     else if (CurrentOperation == EGIZMO_TYPE::ROTATE)
@@ -166,7 +167,7 @@ void FGizmo::Tick(AActor* TargetActor, const FRect& ViewportRect, bool bViewport
         FQuaternion FinalQ = DeltaQ * RotationQ;
         FinalQ.Normalize();
         const FVector Euler = ToEulerAngles(FinalQ) * (180.f / PI);
-        TargetActor->SetRotation(FRotator(Euler.y, Euler.z, Euler.x));
+        TargetSceneComp->SetRelativeRotation(FRotator(Euler.y, Euler.z, Euler.x));
     }
     else if (CurrentOperation == EGIZMO_TYPE::SCALE)
     {
@@ -178,31 +179,31 @@ void FGizmo::Tick(AActor* TargetActor, const FRect& ViewportRect, bool bViewport
         Scale.y = FMath::Max(Scale.y, MIN_SCALE);
         Scale.z = FMath::Max(Scale.z, MIN_SCALE);
 
-        TargetActor->SetScale(Scale);
+        TargetSceneComp->SetRelativeScale3D(Scale);
     }
 
     PrevMousePos = MousePosInScreen;
 }
 
-void FGizmo::Render(AActor* TargetActor, const FVector& CameraPosition, const FRect& ViewportRect, const FMatrix& ViewProjection, bool bIsOrtho, float OrthoDistance)
+void FGizmo::Render(USceneComponent* TargetSceneComp, const FVector& CameraPosition, const FRect& ViewportRect, const FMatrix& ViewProjection, bool bIsOrtho, float OrthoDistance)
 {
     HandleScreenSegments.Empty();
 
     //PROFILE_SCOPE("Viewport/GraphicsMgr/RenderGizmo");
 
-    if (!TargetActor) 
+    if (!TargetSceneComp)
 	{ 
 		Reset(); 
 		return; 
 	}
 
-    if (TargetUUID != TargetActor->UUID) 
+    if (TargetUUID != TargetSceneComp->UUID)
 	{ 
 		Reset(); 
-		TargetUUID = TargetActor->UUID; 
+		TargetUUID = TargetSceneComp->UUID;
 	}
 
-    const FTransform& Transform = TargetActor->GetTransform();
+    const FTransform& Transform = TargetSceneComp->GetTransform();
     const FVector CenterToCamera = CameraPosition - Transform.GetLocation();
 
     // 직교 화면이면 직교 상 거리에 비례한 크기 조절

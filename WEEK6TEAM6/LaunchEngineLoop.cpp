@@ -329,7 +329,6 @@ void FEngineLoop::Tick(bool bPumpMessages)
 				if (RenderCollector.bNeedPickTargets)
 				{
 					AActor* HitActor = nullptr;
-					// TODO:: PerformMousePicking 수정 후 UActorComponent로 교체
 					UPrimitiveComponent* HitPrimitive = nullptr;
 					{
 						PROFILE_SCOPE("MousePicking");
@@ -339,12 +338,12 @@ void FEngineLoop::Tick(bool bPumpMessages)
 					{
 						HitActor = HitPrimitive->GetOwner();
 						mSceneManager->SetSelectedActor(HitActor);
-						mSceneManager->SetSelectedPrimitive(HitPrimitive);
+						mSceneManager->SetSelectedActorComp(HitPrimitive);
 					}
 					else
 					{
 						mSceneManager->ResetSelectedActor();
-						mSceneManager->ResetSelectedPrimitive();
+						mSceneManager->ResetSelectedActorComp();
 					}
 				}
 			}
@@ -353,6 +352,15 @@ void FEngineLoop::Tick(bool bPumpMessages)
 			TArray<UPrimitiveComponent*> HighlightedComponents;
 
 			AActor* SelectedActor = mSceneManager->GetSelectedActor();
+			USceneComponent* SelectedSceneComp = nullptr;
+			if (mSceneManager->GetSelectedActorComp())
+			{
+				SelectedSceneComp = mSceneManager->GetSelectedActorComp()->Cast<USceneComponent>();
+			}
+			else
+			{
+				SelectedSceneComp = nullptr;
+			}
 			{
 				PROFILE_SCOPE("Viewport/SelectionAndGizmo");
 				if (SelectedActor)
@@ -391,7 +399,7 @@ void FEngineLoop::Tick(bool bPumpMessages)
 						}
 					}
 
-					CurrentViewport->Client->mGizmo.Tick(SelectedActor, CurrentViewport->Window->Rect, CurrentViewport->Client->IsActive(), InvViewProjection);
+					CurrentViewport->Client->mGizmo.Tick(SelectedSceneComp, CurrentViewport->Window->Rect, CurrentViewport->Client->IsActive(), InvViewProjection);
 				}
 			}
 
@@ -402,8 +410,8 @@ void FEngineLoop::Tick(bool bPumpMessages)
 				mGraphicsManager->Prepare(&CurrentViewport->Client->mCamera, ViewportRect.Width, ViewportRect.Height, *CurrentViewport->Viewport, CurrentViewport->Client->GetViewMode(), CurrentViewport->Client->GetViewportType());
 				mGraphicsManager->RenderHighLight(HighlightedComponents);
 				mGraphicsManager->Render();
-
-				CurrentViewport->Client->mGizmo.Render(SelectedActor, CurrentViewport->Client->mCamera.Transform.GetLocation(), CurrentViewport->Window->Rect, ViewProjection, CurrentViewport->Client->IsOrtho(), CurrentViewport->Client->GetCamera().mOrthoDistance);
+				if (SelectedSceneComp)
+					CurrentViewport->Client->mGizmo.Render(SelectedSceneComp, CurrentViewport->Client->mCamera.Transform.GetLocation(), CurrentViewport->Window->Rect, ViewProjection, CurrentViewport->Client->IsOrtho(), CurrentViewport->Client->GetCamera().mOrthoDistance);
 			}
 		}
 	}

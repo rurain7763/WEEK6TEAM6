@@ -89,7 +89,6 @@ const TArray<uint32>& UPrimitiveComponent::GetMeshIndices() const
 	static const TArray<uint32> EmptyIndices; return EmptyIndices;
 }
 
-// TODO:: ActorComponent 또는 SceneComponent에서 해당 함수 상속받도록 수정필요 
 bool UPrimitiveComponent::RayCastComponent(const FPickingRay& PickingRay, float& OutHitT, float MaxHitT) const
 {
     if (!std::isfinite(MaxHitT) || MaxHitT < 0.0f) return false;
