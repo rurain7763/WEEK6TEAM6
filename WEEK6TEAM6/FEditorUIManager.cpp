@@ -332,6 +332,7 @@ void FEditorUIManager::Render(FGuiReference& GuiReference)
 	mOutlinerWindow.Render(GuiReference);
 	ConsoleWindow::Get().Process(BottomBarHeight);
 	mContentBrowser.Render(BottomBarHeight);
+	mComponentListWindow.Render(GuiReference);
 #endif
 }
 

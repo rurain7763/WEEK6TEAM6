@@ -157,6 +157,7 @@ void AActor::CreateEditorComponents()
 	Text3DComponent->SetDoNotSerialize(true);
 
 	AddComponent(Text3DComponent);
+	Text3DComponent->AttachToComponent(mRootComponent);
 }
 
 const FTransform& AActor::GetTransform() const

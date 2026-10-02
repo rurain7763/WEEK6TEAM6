@@ -35,14 +35,14 @@ public:
 	bool IsAttachedTo(const USceneComponent* TestComp);
 
 	const USceneComponent* GetAttachParent() { return mAttachParent; }
-	const TArray<USceneComponent*>& GetAttachChildren() { return mAttachChildren; }
-
+	TArray<USceneComponent*>& GetAttachChildren() { return mAttachChildren; }
+	void AddChildComp(USceneComponent* InSceneComp);
 protected:
 	virtual void OnTransformChanged() {}
 
 private:
 	FTransform mRelativeTransform;
 	TArray<USceneComponent*> mAttachChildren;
-	USceneComponent* mAttachParent;
+	USceneComponent* mAttachParent = nullptr;
 };
 

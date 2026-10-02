@@ -5,6 +5,7 @@
 #include "FOutlinerWindow.h"
 #include "FContentBrowser.h"
 #include "FPropertyWindow.h"
+#include "ComponentListWindow.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"
 #include "ImGui/imgui_impl_win32.h"
@@ -64,6 +65,7 @@ private:
 	FPropertyWindow mPropertyWindow;
 	FControlWindow mControlWindow;
 	FOutlinerWindow mOutlinerWindow;
+	FComponentListWindow mComponentListWindow;
 
 	float mViewportX;
 	float mViewportY;

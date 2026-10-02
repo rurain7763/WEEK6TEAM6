@@ -124,20 +124,26 @@ bool USceneComponent::AttachToComponent(USceneComponent* InParentComp)
 			mAttachParent = nullptr;
 		}
 	}
-	TArray<USceneComponent*> ParentAttachChildren = InParentComp->GetAttachChildren();
 	mAttachParent = InParentComp;
-	ParentAttachChildren.Add(this);
+	InParentComp->AddChildComp(this);
 }
 
 bool USceneComponent::IsAttachedTo(const USceneComponent* TestComp)
 {
-	if (mAttachParent == TestComp)
-	{
-		return true;
-	}
 	if (!mAttachParent)
 	{
 		return false;
 	}
+	if (mAttachParent == TestComp)
+	{
+		return true;
+	}
 	return mAttachParent->IsAttachedTo(TestComp);
+}
+
+void USceneComponent::AddChildComp(USceneComponent* InSceneComp)
+{
+	if (!InSceneComp)
+		return;
+	mAttachChildren.Add(InSceneComp);
 }
