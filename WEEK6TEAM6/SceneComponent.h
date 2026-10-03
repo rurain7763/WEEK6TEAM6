@@ -30,6 +30,17 @@ public:
 
 	const FTransform& GetTransform() const;
 
+	FVector GetWorldLocation() const;
+	void SetWorldLocation(FVector location);
+	FRotator GetWorldRotation() const;
+
+	void SetWorldRotation(FRotator rotation);
+
+	FVector GetWorldScale3D() const;
+	void SetWorldScale3D(FVector scale);
+
+	const FTransform& GetWorldTransform() const;
+
 	bool AttachToComponent(USceneComponent* InParentComp);
 	bool IsAttachedTo(const USceneComponent* TestComp);
 
@@ -38,10 +49,13 @@ public:
 	void AddChildComp(USceneComponent* InSceneComp);
 protected:
 	virtual void OnTransformChanged() {}
+	void UpdateComponentToWorld();
 
 private:
 	FTransform mRelativeTransform;
+	FTransform mWorldTransform;
 	TArray<USceneComponent*> mAttachChildren;
 	USceneComponent* mAttachParent = nullptr;
+	bool bComponentToWorldUpdated;
 };
 

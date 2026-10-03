@@ -25,9 +25,12 @@ void FComponentListWindow::Render(const FGuiReference& GuiReference)
 	ImGui::Begin("ComponentList Panel", nullptr, Flags);
 
 	ImGui::SeparatorText("Component List");
-	if (ImGui::Button("Add") && mSelectedActorComp->IsA<USceneComponent>())
+	if (ImGui::Button("Add") && mSelectedActorComp)
 	{
-		ImGui::OpenPopup("ItemListPopup");
+		if (mSelectedActorComp->IsA<USceneComponent>())
+		{
+			ImGui::OpenPopup("ItemListPopup");
+		}
 	}
 	if (ImGui::BeginPopup("ItemListPopup"))
 	{

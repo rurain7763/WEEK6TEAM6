@@ -66,7 +66,7 @@ FVector USceneComponent::GetRelativeLocation() const
 void USceneComponent::SetRelativeLocation(FVector location)
 {
 	mRelativeTransform.SetLocation(location);
-	OnTransformChanged();
+	UpdateComponentToWorld();
 }
 
 FRotator USceneComponent::GetRelativeRotation() const
@@ -77,7 +77,7 @@ FRotator USceneComponent::GetRelativeRotation() const
 void USceneComponent::SetRelativeRotation(FRotator rotation)
 {
 	mRelativeTransform.SetRotation(rotation);
-	OnTransformChanged();
+	UpdateComponentToWorld();
 }
 
 FVector USceneComponent::GetRelativeScale3D() const
@@ -88,12 +88,50 @@ FVector USceneComponent::GetRelativeScale3D() const
 void USceneComponent::SetRelativeScale3D(FVector scale)
 {
 	mRelativeTransform.SetScale(scale);
-	OnTransformChanged();
+	UpdateComponentToWorld();
 }
 
 const FTransform& USceneComponent::GetTransform() const
 {
 	return mRelativeTransform;
+}
+
+FVector USceneComponent::GetWorldLocation() const
+{
+	return mWorldTransform.GetLocation();
+}
+
+void USceneComponent::SetWorldLocation(FVector location)
+{
+	mWorldTransform.SetLocation(location);
+	UpdateComponentToWorld();
+}
+
+FRotator USceneComponent::GetWorldRotation() const
+{
+	return mWorldTransform.GetRotation();
+}
+
+void USceneComponent::SetWorldRotation(FRotator rotation)
+{
+	mWorldTransform.SetRotation(rotation);
+	UpdateComponentToWorld();
+}
+
+FVector USceneComponent::GetWorldScale3D() const
+{
+	return mWorldTransform.GetScale();
+}
+
+void USceneComponent::SetWorldScale3D(FVector scale)
+{
+	mWorldTransform.SetScale(scale);
+	UpdateComponentToWorld();
+}
+
+const FTransform& USceneComponent::GetWorldTransform() const
+{
+	return mWorldTransform;
 }
 
 // 자식 컴포넌트에서 부모 컴포넌트 포인터 추가하고 부모 컴포넌트 배열에 현재 컴포넌트 추가하기, 이미 부모 컴포넌트가 있으면 정리하기
@@ -146,4 +184,23 @@ void USceneComponent::AddChildComp(USceneComponent* InSceneComp)
 	if (!InSceneComp)
 		return;
 	mAttachChildren.Add(InSceneComp);
+}
+
+void USceneComponent::UpdateComponentToWorld()
+{
+	if (mAttachParent)
+	{
+		//mWorldTransform.SetScale(mAttachParent->GetWorldScale3D() * mRelativeTransform.GetScale());
+		//mWorldTransform.SetRotation(mAttachParent->GetWorldRotation() * mRelativeTransform.GetRotation());
+		//mWorldTransform.SetLocation(mAttachParent->GetWorldLocation() * mRelativeTransform.GetLocation());
+	}
+	else
+	{
+		mWorldTransform = mRelativeTransform;
+	}
+	for (USceneComponent* Child : mAttachChildren)
+	{
+		UpdateComponentToWorld();
+	}
+	OnTransformChanged();
 }
