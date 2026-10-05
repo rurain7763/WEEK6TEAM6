@@ -3,7 +3,7 @@
 #include "AssetFileIOs.h"
 #include "ObjectFactory.h"
 #include "Actor.h"
-#include "SceneManager.h"
+#include "EditorEngine.h"
 #include "World.h"
 #include "UStaticMeshComponent.h"
 #include "NativeFileDialog.h"
@@ -18,10 +18,12 @@
 #include "FMeshDescription.h"
 #include "ImGui/imgui.h"
 #include "EngineMathLibrary.h"
+#include "WorldType.h"
+#include "Level.h"
 
-void FObjViewer::Initialize(FSceneManager& InSceneManager, URenderer& Renderer, FFileManager& InFileManager)
+void FObjViewer::Initialize(FEditorEngine& InSceneManager, URenderer& Renderer, FFileManager& InFileManager)
 {
-	mSceneManager = &InSceneManager;
+	mEditorEngine = &InSceneManager;
 	FShowFlags::Get().SetEnabled(EShowFlag::UUIDText, false); 
 	mRenderer = &Renderer;
 }
@@ -70,8 +72,8 @@ void FObjViewer::UpdateObjGUI(FGraphicsManager& InGraphicsManager)
 		ImGui::SeparatorText("Actions");
 		if (ImGui::Button("Clear View") && mViewerActor)
 		{
-			mSceneManager->ResetSelectedComponent();
-			mSceneManager->GetCurrentWorld()->RemoveActor(mViewerActor->UUID);
+			mEditorEngine->ResetSelectedComponent();
+			mEditorEngine->FindWorldContext(Editor)->GetWorld()->RemoveActor(mViewerActor->UUID);
 			mViewerActor = nullptr;
 		}
 	
@@ -208,16 +210,16 @@ void FObjViewer::OpenObj(const std::filesystem::path& FilePath)
 
 	mLoadedFilePath = FString(FilePath.string());
 
-	if (!mSceneManager)
+	if (!mEditorEngine)
 	{
 		return;
 	}
 
 	if (mViewerActor)
 	{
-		mSceneManager->ResetSelectedComponent();
+		mEditorEngine->ResetSelectedComponent();
 
-		mSceneManager->GetCurrentWorld()->RemoveActor(mViewerActor->UUID);
+		mEditorEngine->GetCurrentWorld()->RemoveActor(mViewerActor->UUID);
 		mViewerActor = nullptr;
 	}
 
@@ -241,7 +243,7 @@ void FObjViewer::OpenObj(const std::filesystem::path& FilePath)
 	objComponent->SetMesh(MeshAsset);
 	mViewerComponent = objComponent;
 	mViewerActor->SetRootComponent(objComponent);
-	mSceneManager->GetCurrentWorld()->AddActor(mViewerActor);
+	mEditorEngine->FindWorldContext(Editor)->AddActor(mViewerActor);
 }
 
 bool FObjViewer::BuildRuntimeMaterials(const std::filesystem::path& ObjPath,
@@ -363,8 +365,8 @@ void FObjViewer::OpenStaticMeshAsset(const std::filesystem::path& FilePath)
 
 	if (mViewerActor)
 	{
-		mSceneManager->ResetSelectedComponent();
-		mSceneManager->GetCurrentWorld()->RemoveActor(mViewerActor->UUID);
+		mEditorEngine->ResetSelectedComponent();
+		mEditorEngine->GetCurrentWorld()->RemoveActor(mViewerActor->UUID);
 		mViewerActor = nullptr;
 	}
 
@@ -377,7 +379,7 @@ void FObjViewer::OpenStaticMeshAsset(const std::filesystem::path& FilePath)
 
 	mViewerActor = FObjectFactory::ConstructObject<AActor>();
 	mViewerActor->SetRootComponent(Component);
-	mSceneManager->GetCurrentWorld()->AddActor(mViewerActor);
+	mEditorEngine->GetCurrentWorld()->AddActor(mViewerActor);
 
 	mViewerComponent = Component;
 	mLoadedFilePath = FString(FilePath.string());

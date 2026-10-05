@@ -136,4 +136,5 @@ TMap<FString, std::function<const FClassInfo* ()>> FObjectFactory::mClassInfoMap
 	{"UAtlasAnimationComponent", &UAtlasAnimationComponent::GetStaticClass },
 	{"UWorld", &UWorld::GetStaticClass },
 	{"UStaticMeshComponent", &UStaticMeshComponent::GetStaticClass},
+	{"ULevel", &ULevel::GetStaticClass },
 };

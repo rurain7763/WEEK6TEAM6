@@ -36,7 +36,8 @@
 #include "ShowFlags.h"
 #include "FFrustum.h"
 #include "FHiZOcclusionManager.h"
-#include "FInstrumentor.h"
+#include "WorldType.h"
+#include "WorldContext.h"
 #include <timeapi.h>
 #pragma comment(lib, "winmm.lib")
 
@@ -130,14 +131,15 @@ void FEngineLoop::Init(HINSTANCE hInstance, WNDPROC WndProc)
 	mFileManager = new FFileManager();
 	mFontManager = new FFontManager();
 	InitAssetManager();
-	mSceneManager = new FSceneManager();
+	mEditorEngine = new FEditorEngine();
 	mComponentVisualizerManager = new FComponentVisualizerManager();
 
 	mEditorUIManager = new FEditorUIManager(*mGraphicsManager->GetRenderer());
 
-	mSceneManager->NewScene();
+	mEditorEngine->CreateNewWorldContext(Editor);
+
 #ifdef IS_OBJ_VIEWER
-	mObjViewer.Initialize(*mSceneManager, *mGraphicsManager->GetRenderer(), *mFileManager);
+	mObjViewer.Initialize(*mEditorEngine, *mGraphicsManager->GetRenderer(), *mFileManager);
 #else
 #endif
 	LoadEditorSettings();
@@ -230,9 +232,9 @@ void FEngineLoop::Tick(bool bPumpMessages)
 		PROFILE_SCOPE("Frame/SceneTick");
 		// 분할 화면은 첫 뷰, 단일 화면은 최대화된 뷰를 모든 메시의 LOD 기준으로 사용합니다.
 		const int32 LODViewportIndex = mEditorLayout.bIsSplitView ? 0 : mEditorLayout.MaximizedViewportIndex;
-		mSceneManager->GetCurrentWorld()->SetLODViewOrigin(
+		mEditorEngine->FindWorldContext(Editor)->GetWorld()->SetLODViewOrigin(
 			mViewports[LODViewportIndex].Client->GetCamera().Transform.GetLocation());
-		mSceneManager->Tick(deltaTime);
+		mEditorEngine->Tick(deltaTime);
 	}
 
 	{
@@ -265,7 +267,7 @@ void FEngineLoop::Tick(bool bPumpMessages)
 	mGraphicsManager->GetRenderer()->ResetDrawCallCount();
 
 	// Check if World AABBs are dirty and update GPU StructuredBuffer
-	UWorld* CurrentWorld = mSceneManager ? mSceneManager->GetCurrentWorld() : nullptr;
+	UWorld* CurrentWorld = mEditorEngine ? mEditorEngine->FindWorldContext(Editor)->GetWorld() : nullptr;
 	if (CurrentWorld && CurrentWorld->IsAABBsDirty())
 	{
 		FHiZOcclusionManager::Get().UpdateAABBs(
@@ -319,7 +321,7 @@ void FEngineLoop::Tick(bool bPumpMessages)
 
 			{
 				PROFILE_SCOPE("Viewport/Collect");
-				mSceneManager->Render(deltaTime, RenderCollector);
+				mEditorEngine->Render(deltaTime, RenderCollector);
 			}
 
 			// 마우스 피킹 처리
@@ -336,11 +338,11 @@ void FEngineLoop::Tick(bool bPumpMessages)
 
 					if (HitComponent)
 					{
-						mSceneManager->SetSelectedComponent(HitComponent);
+						mEditorEngine->SetSelectedComponent(HitComponent);
 					}
 					else
 					{
-						mSceneManager->ResetSelectedComponent();
+						mEditorEngine->ResetSelectedComponent();
 					}
 				}
 			}
@@ -348,7 +350,7 @@ void FEngineLoop::Tick(bool bPumpMessages)
 			// 선택된 액터 처리
 			TArray<UPrimitiveComponent*> HighlightedComponents;
 
-			UActorComponent* SelectedComponent = mSceneManager->GetSelectedComponent();
+			UActorComponent* SelectedComponent = mEditorEngine->GetSelectedComponent();
 			{
 				PROFILE_SCOPE("Viewport/SelectionAndGizmo");
 				if (SelectedComponent)
@@ -406,7 +408,7 @@ void FEngineLoop::Tick(bool bPumpMessages)
 
 	FGuiReference GuiReference;
 	GuiReference.FrameTimer = FrameTimer;
-	GuiReference.SceneManager = mSceneManager;
+	GuiReference.SceneManager = mEditorEngine;
 	GuiReference.GraphicsManager = mGraphicsManager;
 	GuiReference.FileManager = mFileManager;
 	GuiReference.AssetManager = mAssetManager;
@@ -471,7 +473,7 @@ void FEngineLoop::End()
 		PROFILE_SCOPE("FEngineLoop::End");
 		SaveEditorSettings();
 
-		mSceneManager->DeleteScene();
+		mEditorEngine->DeleteWorldContext(Editor);
 
 		ImGui_ImplDX11_Shutdown();
 		ImGui_ImplWin32_Shutdown();
@@ -485,7 +487,7 @@ void FEngineLoop::End()
 		delete mEditorUIManager;
 		delete mComponentVisualizerManager;
 		delete FrameTimer;
-		delete mSceneManager;
+		delete mEditorEngine;
 		delete mFileManager;
 		delete mAssetManager;
 		delete mFontManager;

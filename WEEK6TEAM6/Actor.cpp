@@ -5,6 +5,7 @@
 #include "UTextComponent.h"
 #include "ObjectFactory.h"
 #include "World.h"
+#include "Level.h"
 #include <format>
 
 void AActor::Initialize()
@@ -17,9 +18,9 @@ void AActor::Initialize()
 
 void AActor::BeginDestroy()
 {
-	if (mWorld)
+	if (Outer)
 	{
-		mWorld->RemoveActor(UUID);
+		Outer->RemoveActor(UUID);
 	}
 
 	while (!mComponents.IsEmpty()) // 실제 TArray API에 맞게 사용
@@ -112,9 +113,9 @@ void AActor::AddOwnedComponent(UActorComponent* actorComponent)
 
 	actorComponent->SetOwner(this);
 
-	if (mWorld)
+	if (Outer)
 	{
-		mWorld->RegisterComponent(actorComponent);
+		Outer->GetOwningWorld()->RegisterComponent(actorComponent);
 	}
 }
 
@@ -144,9 +145,9 @@ bool AActor::RemoveComponent(UActorComponent* Target)
 		return false;
 	}
 
-	if (mWorld)
+	if (Outer)
 	{
-		mWorld->UnregisterComponent(Target);
+		Outer->GetOwningWorld()->UnregisterComponent(Target);
 	}
 
 	if (Target == mRootComponent)

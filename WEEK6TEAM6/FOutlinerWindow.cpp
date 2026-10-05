@@ -1,12 +1,14 @@
 #include "FOutlinerWindow.h"
 #include "ObjectFactory.h"
 #include "Actor.h"
-#include "SceneManager.h"
+#include "EditorEngine.h"
 #include "Object.h"
 #include "World.h"
 #include "FEditorUIManager.h"
 #include "FInstrumentor.h"
 #include "SceneComponent.h"
+#include "WorldContext.h"
+#include "WorldType.h"
 #include <algorithm>
 
 void FOutlinerWindow::Render(const FGuiReference& GuiReference)
@@ -14,7 +16,7 @@ void FOutlinerWindow::Render(const FGuiReference& GuiReference)
 	PROFILE_FUNCTION();
 
 	ImGuiIO& io = ImGui::GetIO();
-	UWorld* CurrentWorld = GuiReference.SceneManager->GetCurrentWorld();
+	UWorld* CurrentWorld = GuiReference.SceneManager->FindWorldContext(Editor)->GetWorld();
 	UActorComponent* PrevSelectedComponent = GuiReference.SceneManager->GetSelectedComponent();
 
 	ImGuiWindowFlags Flags = ImGuiWindowFlags_NoCollapse;
@@ -29,7 +31,7 @@ void FOutlinerWindow::Render(const FGuiReference& GuiReference)
 	SelectedActorDeleted = false;
 	HasDragDropRequest = false;
 
-	for (AActor* Actor : CurrentWorld->GetActors())
+	for (AActor* Actor : CurrentWorld->GetPersistentLevel()->GetActors())
 	{
 		USceneComponent* RootComponent = Actor->GetRootComponent();
 		if (!RootComponent || RootComponent->HasParent())
@@ -60,7 +62,7 @@ void FOutlinerWindow::Render(const FGuiReference& GuiReference)
 	{
 		GuiReference.SceneManager->ResetSelectedComponent();
 		assert(CurrentWorld != nullptr);
-		CurrentWorld->RemoveActor(SelectedComponent->GetOwner()->UUID);
+		CurrentWorld->GetPersistentLevel()->RemoveActor(SelectedComponent->GetOwner()->UUID);
 		FObjectFactory::DestroyObject(SelectedComponent->GetOwner());
 	}
 	else

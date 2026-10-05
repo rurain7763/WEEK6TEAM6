@@ -9,7 +9,7 @@
 #include "Enum.h"
 
 class AActor;
-class FSceneManager;
+class FEditorEngine;
 class URenderer;
 struct FRenderTarget2D;
 struct FDepthStencil;
@@ -102,7 +102,7 @@ public:
 private:
 	// 선택된 액터의 RenderInfo는 캐시하지 않는다. 필요할 때 ClickedActor->GetRenderInfos()로 그때그때 뽑는다.
 	//마우스 밑 무언가가 Actor이면 저장. RayCast 에서 채워야 함 (아직 미구현)
-	// INFO: mClickedActor moved to FSceneManager::mSelectedActor.
+	// INFO: mClickedActor moved to FEditorEngine::mSelectedActor.
 	//AActor* mClickedActor = nullptr;
 
 	void DeprojectScreenToWorld(int32 MouseX, int32 MouseY,

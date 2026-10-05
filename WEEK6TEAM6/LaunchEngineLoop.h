@@ -4,7 +4,7 @@
 #include "FrameTimer.h"
 #include "FEditorViewportClient.h"
 #include "Camera.h"
-#include "SceneManager.h"
+#include "EditorEngine.h"
 #include "FileManager.h"
 #include "Renderer.h"
 #include "World.h"
@@ -129,7 +129,7 @@ private:
 	FEditorViewport mViewports[4]; // 0 : MainView 1, 2, 3 : Other
 
 	FGraphicsManager* mGraphicsManager;
-	FSceneManager* mSceneManager;
+	FEditorEngine* mEditorEngine;
 	FFileManager* mFileManager;
 	FAssetManager* mAssetManager;
 	FFontManager* mFontManager;

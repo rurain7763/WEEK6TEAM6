@@ -5,6 +5,8 @@
 #include "RenderInfo.h"
 #include "FFrustum.h"
 #include "TActiveTickList.h"
+#include "Level.h"
+#include "WorldType.h"
 
 class UWorld final : public UObject
 {
@@ -14,28 +16,37 @@ public:
 	UWorld() = default;
 	virtual ~UWorld();
 
+	static UWorld* CreateWorld(EWorldType worldType)
+	{
+		UWorld* world = FObjectFactory::ConstructUnInitializedObject<UWorld>();
+		world->InitializeWorld();
+		world->mWorldType = worldType;
+		return world;
+	}
+	void InitializeWorld();
+
+	static UWorld* DuplicateWorldForPIE()
+	{
+
+	}
+
 	virtual void SerializeClass(json::JSON& outJson) const override;
 	virtual void DeserializeClass(const json::JSON& inJson) override;
 
-	void AddActor(AActor* actor);
-	bool RemoveActor(uint32 uuid);
-
-	void RegisterComponent(UActorComponent* Component);
-	void UnregisterComponent(UActorComponent* component);
-    // 등록되었거나 Tickable 플래그가 변경된 컴포넌트만 활성 목록에 반영합니다.
-    void RefreshComponentTick(UActorComponent* Component);
-
-	void MarkBoundsDirty(UActorComponent* component);
-
-	// NOTE: 이번 프레임에 렌더링 대상이 된 컴포넌트를 등록. Unique 체크를 하지 않으므로, 렌더링 대상이 된 컴포넌트는 반드시 한 번만 등록해야함.
-	void RequestRenderUpdate(UActorComponent* component);
+	void AddActor(ULevel* level, AActor* actor);
+	bool RemoveActor(ULevel* level, uint32 uuid);
+	//Todo : MoveActor 필요함
 
 	void RegisterActorComponents(AActor* actor);
 	void UnregisterActorComponents(AActor* actor);
 
-	TArray<AActor*>& GetActors() { return mActors; }
+	void RegisterComponent(UActorComponent* Component);
+	void UnregisterComponent(UActorComponent* component);
 
-	void Tick(float deltaTime);
+    void RefreshComponentTick(UActorComponent* Component); // 등록되었거나 Tickable 플래그가 변경된 컴포넌트만 활성 목록에 반영합니다.
+	void MarkBoundsDirty(UActorComponent* component); // AAABB가 바뀌었음을 표시합니다. Tick에서 BVH를 재구성할 때 사용합니다.
+	void RequestRenderUpdate(UActorComponent* component); // 렌더링 대상이 된 컴포넌트를 등록합니다. Unique 체크를 안하므로 렌더링 후 Clear()로 비워야 함.
+
 	// 모든 메시가 공유할 LOD 기준 카메라 위치를 Tick 시작 전에 전달합니다.
 	void SetLODViewOrigin(const FVector& ViewOrigin) { mLODViewOrigin = ViewOrigin; }
 	const FVector& GetLODViewOrigin() const { return mLODViewOrigin; }
@@ -45,6 +56,12 @@ public:
 	void SetAABBsClean() { mbAABBsDirty = false; }
 	const TArray<FAABB>& GetCachedEntryAABBs() const { return mCachedEntryAABBs; }
 
+	EWorldType GetWorldType() { return mWorldType; }
+	void SetWorldType(EWorldType worldType) { mWorldType = worldType; }
+	ULevel* GetPersistentLevel() { return PersistentLevel; }
+
+	void Tick(float deltaTime);
+
 private:
 	int32 getActorIndex(uint32 actorUUID) const;
 
@@ -53,9 +70,7 @@ private:
 	{
 		DEFAULT_RESERVE_MEM = 1024U
 	};
-	
-	// Todo: Must reserve
-	TArray<AActor*> mActors;
+
 	TArray<UPrimitiveComponent*> mPrimitiveComponents;
 	TArray<UActorComponent*> mNonPrimitiveRenderableComponents; // Primitive는 아닌데 렌더링 기능이 있는 컴포넌트.
 	TArray<UActorComponent*> mUUIDRenderableComponents;
@@ -80,4 +95,8 @@ private:
 	TArray<FBVHNode*> QueryStack;
 	TArray<FBVHItemRange> VisibleRanges;
 	FVector mLODViewOrigin;
+
+	ULevel* PersistentLevel = nullptr;
+	TArray<ULevel*> SubLevels; // 구현 X
+	EWorldType mWorldType = EWorldType::Editor;
 };

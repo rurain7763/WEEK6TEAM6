@@ -2,7 +2,7 @@
 
 #include "Core.h"
 
-class FSceneManager;
+class FEditorEngine;
 struct FGuiReference;
 
 class FControlWindow

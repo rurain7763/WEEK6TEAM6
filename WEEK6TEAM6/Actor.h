@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Object.h"
+#include "Level.h"
 #include "ActorComponent.h"
 #include "TSet.h"
 
@@ -9,6 +10,7 @@ struct FRenderInfo;
 struct FTransform;
 class USceneComponent;
 class FRenderCollector;
+class ULevel;
 
 class AActor : public UObject
 {
@@ -51,18 +53,25 @@ public:
 	void SetRotation(FRotator rotation);
 	void SetScale(FVector scale);
 
-	inline UWorld* GetWorld() const { return mWorld; }
+	ULevel* GetLevel() const { return Outer; }
+	UWorld* GetWorld() const { return Outer ? Outer->GetOwningWorld() : nullptr; }
+	void SetLevel(ULevel* level) { Outer = level; }
+	
+	void SetbTickInEditor(bool TickInEditor) { bTickInEditor = TickInEditor; }
+	bool GetbTickInEditor() { return bTickInEditor; }
 
 private:
 	friend class UWorld;
 
-	UWorld* mWorld = nullptr;
+	ULevel* Outer = nullptr;
 
 	USceneComponent* mRootComponent = nullptr;
 	TSet<UActorComponent*> mComponents;
 
 	bool mbPressed = false;
 	bool mbStarted = false;
+
+	bool bTickInEditor = false;
 };
 
 inline const FVector Up = FVector(0, 0, 1);

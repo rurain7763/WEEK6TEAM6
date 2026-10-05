@@ -12,11 +12,13 @@
 #include "UAtlasAnimationComponent.h"
 #include "UStaticMeshComponent.h"
 #include "World.h"
-#include "SceneManager.h"
+#include "EditorEngine.h"
 #include "FEditorViewportClient.h"
 #include "FEditorUIManager.h"
 #include "enum.h"
 #include "GraphicsManager.h"
+#include "WorldType.h"
+#include "WorldContext.h"
 
 void FControlWindow::Render(const FGuiReference& GuiReference)
 {
@@ -35,7 +37,7 @@ void FControlWindow::Render(const FGuiReference& GuiReference)
 
 void FControlWindow::RenderSpawnActorControl(const FGuiReference& GuiReference)
 {
-	UWorld* CurrentWorld = GuiReference.SceneManager->GetCurrentWorld();
+	UWorld* CurrentWorld = GuiReference.SceneManager->FindWorldContext(Editor)->GetWorld();
 
 	/* Spawn Actor */
 	// NOTE: This name array must be edited when adding new primitive types to EPrimitive enum.
@@ -103,7 +105,8 @@ void FControlWindow::RenderSpawnActorControl(const FGuiReference& GuiReference)
 
 			if (NewActor)
 			{
-				CurrentWorld->AddActor(NewActor);
+				ULevel* level = CurrentWorld->GetPersistentLevel();
+				CurrentWorld->AddActor(level, NewActor);
 			}
 		}
 	}
@@ -134,7 +137,11 @@ void FControlWindow::RenderSceneControl(const FGuiReference& GuiReference)
 	if (ImGui::Button("New scene"))
 	{
 		GuiReference.ViewportClient->Reset();
-		GuiReference.SceneManager->NewScene();
+		if (GuiReference.SceneManager->FindWorldContext(Editor))
+		{
+			GuiReference.SceneManager->DeleteWorldContext(Editor);
+		}
+		GuiReference.SceneManager->CreateNewWorldContext(Editor);
 	}
 
 	ImGui::SameLine();

@@ -15,17 +15,21 @@
 
 UWorld::~UWorld()
 {
-	for (AActor* removeActor : mActors)
-	{
-        removeActor->mWorld = nullptr;
-		FObjectFactory::DestroyObject(removeActor);
-	}
+	FObjectFactory::DestroyObject(PersistentLevel);
+}
+
+void UWorld::InitializeWorld()
+{
+	PersistentLevel = FObjectFactory::ConstructUnInitializedObject<ULevel>();
+	PersistentLevel->SetOwningWorld(this);
 }
 
 void UWorld::SerializeClass(json::JSON& outJson) const
 {
 	UObject::SerializeClass(outJson);
 	json::JSON actorsJson = json::JSON::Make(json::JSON::Class::Array);
+
+	TArray<AActor*> mActors = PersistentLevel->GetActors();
 
 	for (const AActor* actor : mActors)
 	{
@@ -64,43 +68,49 @@ void UWorld::DeserializeClass(const json::JSON& inJson)
 			throw std::runtime_error(std::format("{}: Unknown class name: {}", GetClass()->Name, className));
 		}
 		AActor* actor = static_cast<AActor*>(FObjectFactory::LoadObject(classInfo, actorJson));
-		AddActor(actor);
+		AddActor(PersistentLevel, actor); // Todo : SubLevel 까지 고려한 저장에서 사용하는걸로 변경 필요
 	}
 }
 
-void UWorld::AddActor(AActor* actor)
+void UWorld::AddActor(ULevel* level, AActor* actor)
 {
 	assert(actor != nullptr);
 	assert(getActorIndex(actor->UUID) == -1);
 
-	actor->mWorld = this;
 	for (UActorComponent* component : actor->GetComponents())
 	{
 		RegisterComponent(component);
 	}
 
-	mActors.Add(actor);
+	actor->SetLevel(level);
+	level->AddActor(actor);
 
 	// TODO: 전처리를 통해 에디터 모드가 아니면 아래 코드를 컴파일하지 않게 막아야함.
 	actor->CreateEditorComponents();
 }
 
-bool UWorld::RemoveActor(uint32 uuid)
+bool UWorld::RemoveActor(ULevel* level, uint32 uuid)
 {
 	int32 ActorIndex = getActorIndex(uuid);
 	if (ActorIndex == -1)
 	{
 		return false;
 	}
+
+	AActor* ActorToRemove = nullptr;
+
+	if (!level || !level->FindActor(uuid, ActorToRemove))
+	{
+		return false;
+	}
 	
-	AActor* ActorToRemove = mActors[ActorIndex];
 	for (UActorComponent* component : ActorToRemove->GetComponents())
 	{
 		UnregisterComponent(component);
 	}
-	ActorToRemove->mWorld = nullptr;
+	ActorToRemove->Outer = nullptr;
 
-	mActors.RemoveAtSwap(ActorIndex);
+	level->RemoveActor(uuid);
 
 	return true;
 }
@@ -301,6 +311,9 @@ void UWorld::Render(float deltaTime, FRenderCollector& outCollector)
 
 int32 UWorld::getActorIndex(uint32 actorUUID) const
 {
+
+	TArray<AActor*> mActors = PersistentLevel->GetActors();
+
 	for (uint32 i = 0; i < mActors.Num(); ++i)
 	{
 		if (mActors[i]->UUID == actorUUID)

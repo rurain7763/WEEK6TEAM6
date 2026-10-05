@@ -9,6 +9,7 @@
 #include "FAssetManager.h"
 #include "FObjViewer.h"
 #include "FFrustum.h"
+#include "WorldType.h"
 
 inline constexpr std::string_view kSceneDataDir = "SceneData\\";
 inline constexpr std::string_view kSceneDataSuffix = ".Scene";
@@ -24,32 +25,36 @@ struct FEditorLayout;
 struct FEditorViewport;
 class UStaticMesh;
 class UActorComponent;
+class FWorldContext;
 
-class FSceneManager
+class FEditorEngine
 {
 public:
-	FSceneManager();
-	~FSceneManager();
+	FEditorEngine();
+	~FEditorEngine();
 
 	void Tick(float deltaTime);
 	void Render(float deltaTime, FRenderCollector& outCollector);
 
-	// Clear world
-	void NewScene();
-	void DeleteScene();
+	UWorld* CreateNewWorld(EWorldType worldType);
+	void DeleteWorld(UWorld* world);
+	void DeleteWorldContext(EWorldType worldType);
+	void CreateNewWorldContext(EWorldType worldType);
+	FWorldContext* FindWorldContext(EWorldType worldType);
 
-	// 파일 탐색기용 오버로드
+	// Todo : WorldContext 저장 체제로 변경 해야함
 	void SaveScene(FCamera* Camera, const std::filesystem::path& scenePath, const FFileManager& fileManager);
 	void LoadScene(FCamera* Camera, const std::filesystem::path& scenePath, const FFileManager& fileManager);
-
-	UWorld* GetCurrentWorld() const { return mCurrentWorld; }
 
 	UActorComponent* GetSelectedComponent() const { return mSelectedComponent; }
 	bool IsComponentSelected() const { return mSelectedComponent != nullptr; }
 	void SetSelectedComponent(UActorComponent* component);
 	void ResetSelectedComponent() { mSelectedComponent = nullptr; }
 
+	void StartPIE();
+	void EndPIE();
+
 private:
-	UWorld* mCurrentWorld = nullptr;
+	TArray<FWorldContext*> mWorldContexts;
 	UActorComponent* mSelectedComponent = nullptr;
 };

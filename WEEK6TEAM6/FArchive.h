@@ -300,3 +300,62 @@ inline bool TryReadToBytes(FArchive& Ar, TArray<int8>& OutBytes)
 
 	return Ar.Serialize(OutBytes.Data(), RemainingSize);
 }
+
+class FMemoryWriter : public FArchive
+{
+public:
+	explicit FMemoryWriter(TArray<uint8>& OutBuffer);
+
+	uint64 Tell() const override
+	{
+		LARGE_INTEGER CurrentPosition;
+		SetFilePointerEx(FileHandle, { 0 }, &CurrentPosition, FILE_CURRENT);
+		return static_cast<uint64>(CurrentPosition.QuadPart);
+	}
+
+	uint64 TotalSize() const override
+	{
+		LARGE_INTEGER FileSize;
+		GetFileSizeEx(FileHandle, &FileSize);
+		return static_cast<uint64>(FileSize.QuadPart);
+	}
+
+	bool Seek(uint64 NewPosition) override
+	{
+		LARGE_INTEGER NewPos;
+		NewPos.QuadPart = static_cast<LONGLONG>(NewPosition);
+		return SetFilePointerEx(FileHandle, NewPos, NULL, FILE_BEGIN) != 0;
+	}
+
+	bool Serialize(void* Data, uint64 Size) override
+	{
+		uint8* DataPtr = static_cast<uint8*>(Data);
+
+		uint64 RemainingSize = Size;
+		while (RemainingSize > 0)
+		{
+			DWORD BytesRead = 0;
+			if (!ReadFile(FileHandle, DataPtr, static_cast<DWORD>(RemainingSize), &BytesRead, NULL))
+			{
+				return false;
+			}
+			if (BytesRead == 0)
+			{
+				return false;
+			}
+
+			DataPtr += BytesRead;
+			RemainingSize -= BytesRead;
+		}
+
+		return true;
+	}
+
+private:
+	HANDLE FileHandle = INVALID_HANDLE_VALUE;
+};
+
+class FMemoryReader : public FArchive
+{
+
+};

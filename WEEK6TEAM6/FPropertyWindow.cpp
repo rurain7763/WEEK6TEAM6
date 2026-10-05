@@ -10,7 +10,7 @@
 #include "FAssetManager.h"
 #include "AssetDragDrop.h"
 #include "FEditorUIManager.h"
-#include "SceneManager.h"
+#include "EditorEngine.h"
 #include "Assets.h"
 #include "SceneComponent.h"
 #include "ActorComponent.h"

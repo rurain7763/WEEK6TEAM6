@@ -1,4 +1,4 @@
-#include "SceneManager.h"
+#include "EditorEngine.h"
 
 #include <algorithm>
 #include <format>
@@ -36,51 +36,109 @@
 #include "FAssetManager.h"
 #include "FTextBuilder.h"
 
-FSceneManager::FSceneManager()
+#include "WorldContext.h"
+
+FEditorEngine::FEditorEngine()
 {
 }
 
-FSceneManager::~FSceneManager()
+FEditorEngine::~FEditorEngine()
 {
-	FObjectFactory::DestroyObject(mCurrentWorld);
-}
-
-void FSceneManager::Tick(float deltaTime)
-{
-	mCurrentWorld->Tick(deltaTime);
-}
-
-void FSceneManager::Render(float deltaTime, FRenderCollector& outCollector)
-{
-	mCurrentWorld->Render(deltaTime, outCollector);
-}
-
-void FSceneManager::NewScene()
-{
-	if (mCurrentWorld != nullptr)
+	for (FWorldContext* worldContext : mWorldContexts)
 	{
-		FObjectFactory::DestroyObject(mCurrentWorld);
+		if (worldContext->GetWorld() != nullptr)
+		{
+			FObjectFactory::DestroyObject(worldContext->GetWorld());
+			delete worldContext;
+		}
 	}
+}
+
+void FEditorEngine::Tick(float deltaTime)
+{
+	for (FWorldContext* WorldContext : mWorldContexts)
+	{
+		UWorld* EditorWorld = WorldContext->GetWorld();
+		if (EditorWorld && EditorWorld->GetWorldType() == EWorldType::Editor)
+		{
+			EditorWorld->Tick(deltaTime);
+		}
+		else if (EditorWorld && EditorWorld->GetWorldType() == EWorldType::PIE)
+		{
+			EditorWorld->Tick(deltaTime);
+		}
+	}
+}
+
+void FEditorEngine::Render(float deltaTime, FRenderCollector& outCollector)
+{
+	for (FWorldContext* WorldContext : mWorldContexts)
+	{
+		UWorld* EditorWorld = WorldContext->GetWorld();
+		EditorWorld->Render(deltaTime, outCollector);
+	}
+}
+
+UWorld* FEditorEngine::CreateNewWorld(EWorldType worldType)
+{
+	UWorld* newWorld = UWorld::CreateWorld(worldType);
+	newWorld->SetWorldType(worldType);
 
 	//UEngineStatics::SetNextUUID(0);
 	ResetSelectedComponent();
-	mCurrentWorld = FObjectFactory::ConstructObject<UWorld>();
+
+	return newWorld;
 }
 
-void FSceneManager::DeleteScene()
+void FEditorEngine::DeleteWorld(UWorld* world)
 {
-	if (mCurrentWorld != nullptr)
+	if (world != nullptr)
 	{
-		FObjectFactory::DestroyObject(mCurrentWorld);
-		mCurrentWorld = nullptr;
+		FObjectFactory::DestroyObject(world);
 	}
-
 	ResetSelectedComponent();
 }
 
-void FSceneManager::SaveScene(FCamera* Camera, const std::filesystem::path& scenePath, const FFileManager& fileManager)
+void FEditorEngine::DeleteWorldContext(EWorldType worldType)
 {
-	if (mCurrentWorld == nullptr)
+	for (int index = mWorldContexts.Num() - 1; index >= 0; index--)
+	{
+		UWorld* world = mWorldContexts[index]->GetWorld();
+		if (world->GetWorldType() == worldType)
+		{
+			DeleteWorld(world);
+			delete mWorldContexts[index];
+			mWorldContexts.RemoveAtSwap(index);
+		}
+	}
+}
+
+void FEditorEngine::CreateNewWorldContext(EWorldType worldtype)
+{
+	UWorld* newWolrd = CreateNewWorld(worldtype);
+	FWorldContext* worldContext = new FWorldContext();
+	worldContext->SetWorld(newWolrd);
+	worldContext->SetWorldType(worldtype);
+
+	mWorldContexts.Add(worldContext);
+}
+
+FWorldContext* FEditorEngine::FindWorldContext(EWorldType worldType)
+{
+	for (FWorldContext* worldcontext : mWorldContexts)
+	{
+		if (worldcontext->GetWorldType() == worldType)
+		{
+			return worldcontext;
+		}
+	}
+	return nullptr;
+}
+
+void FEditorEngine::SaveScene(FCamera* Camera, const std::filesystem::path& scenePath, const FFileManager& fileManager)
+{
+
+	if (mWorldContexts.Num() == 0)
 	{
 		throw std::runtime_error("Cannot save scene because current world is null.");
 	}
@@ -110,13 +168,14 @@ void FSceneManager::SaveScene(FCamera* Camera, const std::filesystem::path& scen
 		version = 0;
 	}
 
-	json::JSON sceneJson =
-		json::JSON::Make(json::JSON::Class::Object);
+	json::JSON sceneJson = json::JSON::Make(json::JSON::Class::Object);
 
-	json::JSON worldJson =
-		json::JSON::Make(json::JSON::Class::Object);
+	json::JSON worldJson = json::JSON::Make(json::JSON::Class::Object);
 
-	mCurrentWorld->SerializeClass(worldJson);
+	for (FWorldContext* worldcontent : mWorldContexts)
+	{
+		worldcontent->GetWorld()->SerializeClass(worldJson);
+	}
 
 	sceneJson["Version"] = version;
 	sceneJson["NextUUID"] = UEngineStatics::GetNextUUID();
@@ -136,7 +195,7 @@ void FSceneManager::SaveScene(FCamera* Camera, const std::filesystem::path& scen
 		jsonString);
 }
 
-void FSceneManager::LoadScene(FCamera* Camera, const std::filesystem::path& scenePath, const FFileManager& fileManager)
+void FEditorEngine::LoadScene(FCamera* Camera, const std::filesystem::path& scenePath, const FFileManager& fileManager)
 {
 	const FString jsonString = fileManager.ReadFileToString(scenePath);
 
@@ -157,7 +216,8 @@ void FSceneManager::LoadScene(FCamera* Camera, const std::filesystem::path& scen
 
 	const json::JSON worldJson = sceneJson.at("World");
 
-	UWorld* newWorld = FObjectFactory::LoadObject<UWorld>(worldJson);
+	UWorld* newWorld = UWorld::CreateWorld(EWorldType::Editor);
+	newWorld->DeserializeClass(worldJson);
 
 	json::JSON PerspectiveCameraJson = sceneJson.at("PerspectiveCamera");
 	Camera->Transform.SetLocation(JsonUtils::FromJson<FVector>(PerspectiveCameraJson.at("Location")));
@@ -172,13 +232,13 @@ void FSceneManager::LoadScene(FCamera* Camera, const std::filesystem::path& scen
 	}
 
 	// 새 월드 생성이 성공한 경우에만 기존 월드를 교체한다.
-	FObjectFactory::DestroyObject(mCurrentWorld);
-	mCurrentWorld = newWorld;
 
+	FObjectFactory::DestroyObject(FindWorldContext(Editor)->GetWorld());
+	
 	ResetSelectedComponent();
 }
 
-void  FSceneManager::SetSelectedComponent(UActorComponent* component)
+void  FEditorEngine::SetSelectedComponent(UActorComponent* component)
 {
 	if (component == nullptr)
 	{
@@ -196,8 +256,19 @@ void  FSceneManager::SetSelectedComponent(UActorComponent* component)
 	mSelectedComponent = component;
 }
 
+void FEditorEngine::StartPIE()
+{
+	UWorld* EditorWorld = FindWorldContext(Editor)->GetWorld();
+
+}
+
+void FEditorEngine::EndPIE()
+{
+
+}
+
 //
-//FSceneData FSceneManager::ReadSceneData(
+//FSceneData FEditorEngine::ReadSceneData(
 //	std::string_view sceneName,
 //	const FFileManager& fileManager)
 //{
@@ -209,7 +280,7 @@ void  FSceneManager::SetSelectedComponent(UActorComponent* component)
 //	return sceneData;
 //}
 //
-//UWorld* FSceneManager::BuildWorldFromSceneData(const FSceneData& sceneData)
+//UWorld* FEditorEngine::BuildWorldFromSceneData(const FSceneData& sceneData)
 //{
 //	//UWorld* newWorld = FObjectFactory::ConstructObject<UWorld>();
 //

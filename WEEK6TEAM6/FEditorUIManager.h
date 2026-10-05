@@ -16,7 +16,7 @@ class FCamera;
 class FGraphicsManager;
 class URenderer;
 class FFrameTimer;
-class FSceneManager;
+class FEditorEngine;
 class FFileManager;
 struct FEditorViewportClient;
 struct FEditorLayout;
@@ -26,7 +26,7 @@ struct FGuiReference
 {
 	FCamera* EditorCamera;
 	FFrameTimer* FrameTimer;
-	FSceneManager* SceneManager;
+	FEditorEngine* SceneManager;
 	FGraphicsManager* GraphicsManager;
 	FEditorViewportClient* ViewportClient;
 	FFileManager* FileManager;
