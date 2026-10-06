@@ -30,6 +30,7 @@ public:
 
 	void RenderHighLight(const TArray<UPrimitiveComponent*>& Primitives);
 	void Render();
+	void PostProcessDepthScene();
 
 	void Display();
 

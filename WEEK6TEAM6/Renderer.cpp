@@ -134,6 +134,18 @@ void URenderer::Create(HWND hWindow)
 	QuadPipeline->AddConstantBuffer<FQuadConstants>();
 	QuadPipeline->AddConstantBuffer<FMatrix>();
 	QuadPipeline->SetSamplerState(0, D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP);
+
+	SceneDepthPipeline = CreateRenderPipeline();
+	SceneDepthPipeline->SetRasterRizerState(D3D11_CULL_NONE);
+	SceneDepthPipeline->SetDepthStencilState(false, false);
+	SceneDepthPipeline->SetShader("Assets/Shaders/SceneDepth.hlsl");
+	SceneDepthPipeline->AddConstantBuffer<FSceneDepthConstants>();
+
+	ExponentialHeightFogPipeline = CreateRenderPipeline();
+	ExponentialHeightFogPipeline->SetRasterRizerState(D3D11_CULL_NONE);
+	ExponentialHeightFogPipeline->SetDepthStencilState(false, false);
+	ExponentialHeightFogPipeline->SetShader("Assets/Shaders/FogShader.hlsl");
+	ExponentialHeightFogPipeline->AddConstantBuffer<FExponentialHeightFogConstants>();
 }
 
 void URenderer::CreateDeviceAndSwapChain(HWND hWindow)
@@ -342,7 +354,7 @@ void URenderer::SwapBuffer()
 	SwapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
 }
 
-void URenderer::Prepare(const FMatrix& ViewProjectionMatrix)
+void URenderer::Prepare(const FMatrix& ViewProjectionMatrix, const FMatrix& InvProjectionMatrix, const FMatrix& InvViewMatrix, const FVector& cameralocation, const FRenderCollector& FogInfo)
 {
 	DeviceContext->ClearRenderTargetView(FrameBufferRTV, ClearColor);
 	DeviceContext->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
@@ -354,9 +366,29 @@ void URenderer::Prepare(const FMatrix& ViewProjectionMatrix)
 	CameraConstants.ViewProjectionMatrix = ViewProjectionMatrix;
 	CameraConstants.ViewportSize = FVector2((float)Width, (float)Height);
 
+	FSceneDepthConstants SceneDepthConstants;
+	SceneDepthConstants.InvProjection = InvProjectionMatrix;
+	SceneDepthConstants.InvViewportSize = FVector2(1 / (float)Width, 1 / (float)Height);
+	SceneDepthConstants.DisplayNear = 5;
+	SceneDepthConstants.DisplayFar = 50;
+
+	FExponentialHeightFogConstants EHFogConstants;
+	EHFogConstants.InvProjection = InvProjectionMatrix;
+	EHFogConstants.InvView = InvViewMatrix;
+	EHFogConstants.FogColor = FogInfo.GetEHFogInfo().FogInscatteringColor;
+	EHFogConstants.InvViewportSize = FVector2(1 / (float)Width, 1 / (float)Height);
+	EHFogConstants.CameraLocation = cameralocation;
+	EHFogConstants.FogDensity = FogInfo.GetEHFogInfo().FogDensity;
+	EHFogConstants.FogHeightFalloff = FogInfo.GetEHFogInfo().FogHeightFalloff;
+	EHFogConstants.StartDistance = FogInfo.GetEHFogInfo().StartDistance;
+	EHFogConstants.FogZ = FogInfo.GetEHFogInfo().FogZ;
+
+
 	LinePipeline->UpdateConstantBuffer(0, CameraConstants);
 	PrimitivePipeline->UpdateConstantBuffer(1, ViewProjectionMatrix);
 	QuadPipeline->UpdateConstantBuffer(1, ViewProjectionMatrix);
+	SceneDepthPipeline->UpdateConstantBuffer(0, SceneDepthConstants);
+	ExponentialHeightFogPipeline->UpdateConstantBuffer(0, EHFogConstants);
 }
 
 TSharedPtr<FIndexBuffer> URenderer::CreateIndexBuffer(const uint32* Indices, UINT Count, D3D11_USAGE Usage)
@@ -879,6 +911,54 @@ void URenderer::RenderWorldGrid(const FMatrix& ViewProjection, const FVector& Ca
 
 	DeviceContext->Draw(6, 0);
 	++DrawCallCount;
+}
+
+void URenderer::RenderSceneDepth()
+{
+	auto Depth = GetBindedDepthStencil();
+	auto Target = GetBindedRenderTarget();
+
+	if (!Depth || !Target)
+	{
+		return;
+	}
+
+	BindRenderTarget(Target, nullptr, false);
+	SceneDepthPipeline->SetShaderResource(0, Depth->DepthSRV);
+	Render(SceneDepthPipeline.get(), 6);
+	ClearAllShaderResources();
+	SceneDepthPipeline->ClearShaderResource();
+
+	BindRenderTarget(Target, Depth, false);
+}
+
+void URenderer::RenderFog()
+{
+	auto Depth = GetBindedDepthStencil();
+	auto Target = GetBindedRenderTarget();
+
+	if (!Depth || !Target)
+	{
+		return;
+	}
+
+	D3D11_TEXTURE2D_DESC TargetDesc{};
+	Target->Texture->GetDesc(&TargetDesc);
+	auto FogOutputTarget = CreateRenderTarget2D(TargetDesc.Width, TargetDesc.Height, TargetDesc.Format);
+
+	BindRenderTarget(FogOutputTarget, nullptr, false);
+
+	ExponentialHeightFogPipeline->SetShaderResource(0, Depth->DepthSRV);
+	ExponentialHeightFogPipeline->SetShaderResource(1, Target->SRV);
+
+	Render(ExponentialHeightFogPipeline.get(), 6);
+	ClearAllShaderResources();
+	ExponentialHeightFogPipeline->ClearShaderResource();
+
+	DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+	DeviceContext->CopyResource(Target->Texture.Get(), FogOutputTarget->Texture.Get());
+
+	BindRenderTarget(Target, Depth, false);
 }
 
 void URenderer::ClearAllShaderResources()

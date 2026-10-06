@@ -17,6 +17,7 @@
 #include "FEditorUIManager.h"
 #include "enum.h"
 #include "GraphicsManager.h"
+#include "UExponentialHeightFogComponent.h"
 
 void FControlWindow::Render(const FGuiReference& GuiReference)
 {
@@ -48,6 +49,7 @@ void FControlWindow::RenderSpawnActorControl(const FGuiReference& GuiReference)
 		"Circle",
 		"SpotLight",
 		"Explosion",
+		"ExponentialHeightFog",
 	};
 
 	ImGui::Combo("Actor Type", &mSelectedTargetSpawnIndex, ActorTypeNames, IM_ARRAYSIZE(ActorTypeNames));
@@ -94,6 +96,13 @@ void FControlWindow::RenderSpawnActorControl(const FGuiReference& GuiReference)
 				NewActor->Rename(FName("StaticMeshActor"));
 				UStaticMeshComponent* MeshComponent = NewActor->CreateDefaultSubobject<UStaticMeshComponent>(FName("StaticMeshComponent"));
 				NewActor->SetRootComponent(MeshComponent);
+			}
+			else if (strcmp(ActorTypeName, "ExponentialHeightFog") == 0)
+			{
+				NewActor = FObjectFactory::ConstructObject<AActor>();
+				NewActor->Rename(FName("ExponentialHeightFog"));
+				auto* FogComponent = NewActor->CreateDefaultSubobject<UExponentialHeightFogComponent>(FName("ExponentialHeightFogComponent"));
+				NewActor->SetRootComponent(FogComponent);
 			}
 			else
 			{

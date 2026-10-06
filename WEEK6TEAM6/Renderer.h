@@ -94,6 +94,29 @@ struct FQuadConstants
 	int32 Padding[2];
 };
 
+struct FSceneDepthConstants
+{
+	FMatrix InvProjection;
+	FVector2 InvViewportSize;
+	float DisplayNear;
+	float DisplayFar;
+};
+
+struct FExponentialHeightFogConstants
+{
+	FMatrix InvProjection;
+	FMatrix InvView;
+	FVector4 FogColor;
+	FVector2 InvViewportSize;
+	FVector2 Padding0{};
+	FVector CameraLocation;
+	float FogDensity;
+	float FogHeightFalloff;
+	float StartDistance;
+	float FogZ;
+	float Padding1 = 0.0f;
+};
+
 struct FSamplerStateKey
 {
 	D3D11_FILTER Filter;
@@ -466,7 +489,7 @@ public:
 	TSharedPtr<FDepthStencil> CreateDepthStencil(uint32 Width, uint32 Height);
 	
 	//Rendering
-	void Prepare(const FMatrix& ViewProjectionMatrix);
+	void Prepare(const FMatrix& ViewProjectionMatrix, const FMatrix& InvProjectionMatrix, const FMatrix& InvViewMatrix, const FVector& cameralocation, const FRenderCollector& FogInfo);
 
 	TSharedPtr<FRenderPipeline> CreateRenderPipeline();
 
@@ -498,6 +521,9 @@ public:
 
 	void RenderWorldAxis(const FMatrix& View, const FMatrix& Projection, const FVector4& Color, const FVector& Axis, float Thickness = 0.002f);
 	void RenderWorldGrid(const FMatrix& ViewProjection, const FVector& CameraLocation, float GridGap);
+
+	void RenderSceneDepth();
+	void RenderFog();
 
 	void ClearAllShaderResources();
 
@@ -565,6 +591,8 @@ private:
 	TSharedPtr<FRenderPipeline> WorldGridPipeline;
 	TSharedPtr<FRenderPipeline> QuadPipeline;
 	TSharedPtr<FRenderPipeline> Quad2DPipeline;
+	TSharedPtr<FRenderPipeline> SceneDepthPipeline; // SceneDepth post processing 전용 pipeline (전처리 draw 포함 X)
+	TSharedPtr<FRenderPipeline> ExponentialHeightFogPipeline; // ExponentialHeightFog post processing 전용 pipeline (전처리 draw 포함 X)
 
 	UINT Width, Height;
     FLOAT ClearColor[4] = { 0.025f, 0.025f, 0.025f, 1.0f };

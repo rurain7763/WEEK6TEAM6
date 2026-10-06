@@ -87,6 +87,17 @@ struct FRenderLineInfo
 	float Padding;
 };
 
+struct FExponentialHeightFogInfo
+{
+	float FogDensity;
+	float FogHeightFalloff;
+	float StartDistance;
+	float FogCutoffDistance;
+	float FogMaxOpacity;
+	float FogZ;
+	FVector4 FogInscatteringColor;
+};
+
 // 이번 프레임에 그릴 것들을 한데 모은다. 소유자는 FGraphicsManager.
 struct FRenderCollector
 {
@@ -138,15 +149,21 @@ public:
 		TransparentQuadInfos.Reset(DEFAULT_RESERVE_MEM);
 		OverlayQuadInfos.Reset(DEFAULT_RESERVE_MEM);
 		Quad2DInfos.Reset(DEFAULT_RESERVE_MEM);
+		EHFInfo = {};
+		hasHeightFogInfo = false;
 	}
 
 	inline const TArray<FRenderQuadInfo>& GetOpaqueQuadInfos() const { return OpaqueQuadInfos; }
 	inline const TArray<FRenderQuadInfo>& GetTransparentQuadInfos() const { return TransparentQuadInfos; }
 	inline const TArray<FRenderQuadInfo>& GetOverlayQuadInfos() const { return OverlayQuadInfos; }
 	inline const TArray<FRenderQuad2DInfo>& GetQuad2DInfos() const { return Quad2DInfos; }
+	inline const FExponentialHeightFogInfo& GetEHFogInfo() const { return EHFInfo; }
+	bool HasHeightFogInfo() const { return hasHeightFogInfo; }
 	
 	inline const TRangePool<FRenderInfo>& GetRenderInfoPool() const { return RenderInfoPool; }
 	inline TArray<int32>& GetVisibleRenderInfoIndices() { return VisibleRenderInfoIndices; }
+
+	void SetEHFogInfo(FExponentialHeightFogInfo& foginfo) { EHFInfo = foginfo; hasHeightFogInfo = true; }
 
 private:
 	friend class FRenderProxy;
@@ -159,6 +176,8 @@ private:
 	TArray<FRenderQuadInfo> OverlayQuadInfos;
 
 	TArray<FRenderQuad2DInfo> Quad2DInfos;
+	FExponentialHeightFogInfo EHFInfo;
+	bool hasHeightFogInfo = false;
 };
 
 class FRenderProxy

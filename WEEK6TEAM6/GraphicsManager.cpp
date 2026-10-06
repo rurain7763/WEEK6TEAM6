@@ -12,6 +12,7 @@
 //#include "FInstrumentor.h"
 #include <algorithm>
 #include "FHiZOcclusionManager.h"
+#include "RenderInfo.h"
 
 // 선분 하나당 정점 2개. 축 6개 + 앞으로 붙을 그리드까지 감당할 만큼 잡아둔다
 static constexpr uint32 LINE_VERTEX_CAPACITY = 8192;
@@ -26,7 +27,7 @@ FGraphicsManager::FGraphicsManager(HWND hWindow) :
 	mAspect = mRenderer->GetWidth() / static_cast<float>(mRenderer->GetHeight());
 
 	mMeshPipeline = mRenderer->CreateRenderPipeline();
-	mMeshPipeline->SetRasterRizerState(D3D11_CULL_BACK, 0, { EViewModeIndex::VMI_Lit, EViewModeIndex::VMI_Wireframe });
+	mMeshPipeline->SetRasterRizerState(D3D11_CULL_BACK, 0, { EViewModeIndex::VMI_Lit, EViewModeIndex::VMI_Wireframe, EViewModeIndex::VMI_SceneDepth });
 	mMeshPipeline->SetDepthStencilState(true, true);
 	mMeshPipeline->SetShader("Assets/Shaders/StaticMeshShader.hlsl");
 	mMeshPipeline->AddConstantBuffer<FConstants>();
@@ -62,6 +63,8 @@ FGraphicsManager::FGraphicsManager(HWND hWindow) :
 		mRenderer->GetDevice()->CreateQuery(&QueryDesc, &QuerySet.Begin);
 		mRenderer->GetDevice()->CreateQuery(&QueryDesc, &QuerySet.End);
 	}
+
+
 }
 
 FGraphicsManager::~FGraphicsManager()
@@ -74,6 +77,11 @@ FGraphicsManager::~FGraphicsManager()
 	mRenderCollector.Clear();
 	mRenderer->Release();
 	delete mRenderer;
+}
+
+void FGraphicsManager::PostProcessDepthScene()
+{
+	GetRenderer()->RenderSceneDepth();
 }
 
 void FGraphicsManager::Prepare(const FCamera* mCamera, float viewportWidth, float viewportHeight, const FViewport& Viewport, const EViewModeIndex InViewMode, const EViewportType InViewportType)
@@ -101,7 +109,9 @@ void FGraphicsManager::Prepare(const FCamera* mCamera, float viewportWidth, floa
 	mViewModeIndex = InViewMode;
 	mRenderer->SetViewModeIndex(mViewModeIndex);
 
-	mRenderer->Prepare(view * projection_u);
+	mCameraLocation = mCamera->Transform.GetLocation();
+
+	mRenderer->Prepare(view * projection_u, projection_u.Inverse(), view.Inverse(), mCameraLocation, mRenderCollector);
 
 	float orthoHeight = mCamera->mOrthoHeight;
 	float orthoWidth = orthoHeight * mAspect;
@@ -110,7 +120,6 @@ void FGraphicsManager::Prepare(const FCamera* mCamera, float viewportWidth, floa
 	mViewUnifiedProjectionMatrix = view * projection_u;
 
 	// 하이라이트 두께를 화면 픽셀 기준으로 환산할 때 쓴다
-	mCameraLocation = mCamera->Transform.GetLocation();
 	mCameraForward = mCamera->GetForwardVector();
 	mCameraFovDegree = mCamera->mFovDegree;
 	mCameraOrthoDistance = mCamera->mOrthoDistance;
@@ -258,7 +267,17 @@ void FGraphicsManager::Render()
 			LastViewPipeline = Pipeline;
 		}
 	}
-	
+
+	if (mViewModeIndex == EViewModeIndex::VMI_SceneDepth)
+	{
+		PostProcessDepthScene();
+	}
+	if (mRenderCollector.HasHeightFogInfo())
+	{
+		GetRenderer()->RenderFog();
+	}
+
+
 	// Hi-Z Occlusion Culling: Downsamples depth buffer into Hi-Z pyramid and tests scene AABBs
 	if (FShowFlags::Get().IsEnabled(EShowFlag::OcclusionCulling) && mViewportType == EViewportType::Perspective)
 	{

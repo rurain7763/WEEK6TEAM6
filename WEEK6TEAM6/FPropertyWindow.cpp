@@ -14,6 +14,7 @@
 #include "Assets.h"
 #include "SceneComponent.h"
 #include "ActorComponent.h"
+#include "UExponentialHeightFogComponent.h"
 
 void FPropertyWindow::Render(const FGuiReference& GuiReference)
 {
@@ -131,6 +132,10 @@ void FPropertyWindow::Render(const FGuiReference& GuiReference)
 			else if (mSelectedComponent->IsA<UStaticMeshComponent>())
 			{
 				RenderStaticMeshComponent(mSelectedComponent->Cast<UStaticMeshComponent>());
+			}
+			else if (mSelectedComponent->IsA<UExponentialHeightFogComponent>())
+			{
+				RenderExponentialHeightFogComponent(mSelectedComponent->Cast<UExponentialHeightFogComponent>());
 			}
 		}
 
@@ -481,5 +486,39 @@ void FPropertyWindow::RenderStaticMeshComponent(UStaticMeshComponent* StaticMesh
 			StaticMeshComponent->SetUVOffset(i, UVOffset);
 		}
 		ImGui::PopID();
+	}
+}
+
+void FPropertyWindow::RenderExponentialHeightFogComponent(UExponentialHeightFogComponent* fogcomponent)
+{
+	float Density = fogcomponent->GetFogDensity();
+	if (ImGui::DragFloat("Fog Density", &Density, 0.01f, 0.0f, 5.0f, "%.2f"))
+	{
+		fogcomponent->SetFogDensity(Density);
+	}
+	float FogHeightFalloff = fogcomponent->GetFogHeightFalloff();
+	if (ImGui::DragFloat("Fog Height Falloff", &FogHeightFalloff, 0.01f, 0.0f, 5.0f, "%.2f"))
+	{
+		fogcomponent->SetFogHeightFalloff(FogHeightFalloff);
+	}
+	float StartDistance = fogcomponent->GetStartDistance();
+	if (ImGui::DragFloat("Fog Start Distance", &StartDistance, 0.01f, 0.0f, 5.0f, "%.2f"))
+	{
+		fogcomponent->SetStartDistance(StartDistance);
+	}
+	float FogCutoffDistance = fogcomponent->GetFogCutoffDistance();
+	if (ImGui::DragFloat("Fog Cutoff Distance", &FogCutoffDistance, 0.01f, 0.0f, 5.0f, "%.2f"))
+	{
+		fogcomponent->SetFogCutoffDistance(FogCutoffDistance);
+	}
+	float FogMaxOpacity = fogcomponent->GetFogMaxOpacity();
+	if (ImGui::DragFloat("Fog Max Opacity", &FogMaxOpacity, 0.01f, 0.0f, 5.0f, "%.2f"))
+	{
+		fogcomponent->SetFogMaxOpacity(FogMaxOpacity);
+	}
+	FVector4 color = fogcomponent->GetFogInscatteringColor();
+	if (ImGui::ColorEdit4("Fog Color", &color.x))
+	{
+		fogcomponent->SetFogInscatteringColor(color);
 	}
 }

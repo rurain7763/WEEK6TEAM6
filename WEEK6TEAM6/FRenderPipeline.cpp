@@ -71,6 +71,7 @@ static D3D11_FILL_MODE GetFillModeForViewMode(EViewModeIndex ViewMode)
 	case EViewModeIndex::VMI_Wireframe:	return D3D11_FILL_WIREFRAME;
 	case EViewModeIndex::VMI_Lit:
 	case EViewModeIndex::VMI_Unlit:
+	case EViewModeIndex::VMI_SceneDepth:
 	default:							return D3D11_FILL_SOLID;
 	}
 }
